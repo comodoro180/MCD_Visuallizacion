@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Análisis de Ventas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0f0f23;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+        
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        nav a {
+            color: #e0e0e0;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        nav a:hover {
+            background: rgba(52, 152, 219, 0.3);
+            color: #3498db;
+            transform: translateY(-2px);
+        }
+        
+        /* Header Principal */
+        .main-header {
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(52, 152, 219, 0.1) 100%);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 3rem 0 2rem;
+            margin-bottom: 0;
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 0 2rem;
+        }
+        
+        .main-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0;
+            text-shadow: 0 2px 20px rgba(52, 152, 219, 0.3);
+            background: linear-gradient(135deg, #ffffff 0%, #3498db 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+        }
+        
+        .author-credit {
+            font-size: 1rem;
+            color: #95a5a6;
+            margin: 0.5rem 0 0;
+            font-weight: 300;
+            opacity: 0.8;
+            font-style: italic;
+        }
+        
+        /* Navegación */
+        nav {
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Contenedor principal */
+        main {
+            padding: 2rem;
+        }
+        
+        /* Secciones */
+        .section {
+            max-width: 1400px;
+            margin: 0 auto 4rem;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: #3498db;
+            position: relative;
+        }
+        
+        .section h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: #3498db;
+            border-radius: 2px;
+        }
+        
+        /* Grid de gráficos */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .chart-container {
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chart-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #3498db;
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .chart-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+        }
+        
+        .chart-container:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .chart-container h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            color: #e0e0e0;
+            text-align: center;
+        }
+        
+        .chart-conclusion {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(52, 152, 219, 0.1);
+            border-left: 3px solid #3498db;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: #bdc3c7;
+        }
+        
+        .chart-conclusion strong {
+            color: #3498db;
+        }
+        
+        /* Canvas responsivo */
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+        
+        .chart-wrapper.large {
+            height: 400px;
+        }
+        
+        /* Métricas destacadas */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        
+        .metric-card {
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: scale(1.05);
+            border-color: #3498db;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            color: #999;
+            margin-top: 0.5rem;
+        }
+        
+        /* Scrollbar personalizado */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(52, 152, 219, 0.5);
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(52, 152, 219, 0.8);
+        }
+        
+        /* Animación de carga */
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            animation: pulse 1.5s ease infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Principal -->
+    <header class="main-header">
+        <div class="header-content">
+            <h1 class="main-title">Tablero Ejecutivo de Ventas</h1>
+            <p class="author-credit">por Carlos A. Hoyos</p>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#ventas-producto">Ventas por Producto</a></li>
+            <li><a href="#ventas-region">Ventas por Región</a></li>
+            <li><a href="#desempeno-reps">Desempeño Representantes</a></li>
+            <li><a href="#feedback">Feedback Clientes</a></li>
+            <li><a href="#inventario">Inventario</a></li>
+            <li><a href="#kpis">KPIs</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <!-- Sección 1: Ventas por Producto -->
+        <section id="ventas-producto" class="section">
+            <h2>Ventas por Producto</h2>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="total-ventas">$0</div>
+                    <div class="metric-label">Ventas Totales Anuales</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="promedio-mensual">$0</div>
+                    <div class="metric-label">Promedio Mensual</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="mejor-mes">-</div>
+                    <div class="metric-label">Mejor Mes</div>
+                </div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Evolución Mensual de Ventas</h3>
+                    <div class="chart-wrapper large">
+                        <canvas id="chart-ventas-linea"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        El Producto A lidera consistentemente las ventas con un pico en diciembre ($15M). Todos los productos muestran estacionalidad navideña, siendo diciembre el mes más fuerte y abril el más débil del año.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Comparación Total por Producto</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-ventas-barras"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        El Producto A domina con $142.7M anuales (42% del total), seguido por Producto C ($126.5M) y Producto B ($103.3M). La diferencia de $39.4M entre el mejor y peor producto indica oportunidades de crecimiento en Producto B.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Participación en Ventas Totales</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-ventas-pie"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Portfolio balanceado con Producto A capturando el 38.3% del mercado, Producto C el 34.0% y Producto B el 27.7%. La distribución relativamente equilibrada sugiere una estrategia de diversificación efectiva.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Tendencia de Crecimiento</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-ventas-tendencia"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Mayo registra el mayor crecimiento (+27.2%) mientras que abril muestra la mayor caída (-14.5%). La volatilidad mensual indica la necesidad de estrategias de estabilización en los meses más débiles.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección 2: Ventas por Región -->
+        <section id="ventas-region" class="section">
+            <h2>Ventas por Región y Producto</h2>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Comparación de Ventas por Región</h3>
+                    <div class="chart-wrapper large">
+                        <canvas id="chart-region-barras"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        La región Sur supera consistentemente al Norte en 11 de 12 meses. El Sur genera $206.2M vs $166.3M del Norte, representando una ventaja del 24% que sugiere mayor potencial de mercado o penetración.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Evolución Mensual por Región</h3>
+                    <div class="chart-wrapper large">
+                        <canvas id="chart-region-lineas"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Ambas regiones muestran patrones estacionales similares con picos en diciembre. El Norte presenta mayor volatilidad mientras que el Sur mantiene un crecimiento más estable y sostenido durante el año.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Distribución de Productos - Norte</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-region-norte-pie"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        En el Norte, Producto A domina con 40.8%, seguido por Producto C (35.3%) y Producto B (23.9%). Esta concentración en Producto A presenta tanto fortalezas como riesgos de dependencia.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Distribución de Productos - Sur</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-region-sur-pie"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        El Sur muestra un portfolio más equilibrado: Producto A (35.9%), Producto C (33.0%) y Producto B (31.1%). Esta diversificación reduce riesgos y optimiza oportunidades de crecimiento.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección 3: Desempeño Representantes -->
+        <section id="desempeno-reps" class="section">
+            <h2>Desempeño de Representantes</h2>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Ventas Totales por Representante</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-reps-total"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Pedro lidera con $115.6M anuales, superando a Ana ($115.2M) por mínimo margen y a Juan ($67.8M) por 70%. La brecha significativa con Juan sugiere necesidad de capacitación o redistribución territorial.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Evolución Mensual por Representante</h3>
+                    <div class="chart-wrapper large">
+                        <canvas id="chart-reps-evolucion"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Pedro mantiene liderazgo consistente con crecimiento sostenido. Ana muestra progresión sólida mientras Juan presenta el crecimiento más modesto, requiriendo análisis de factores limitantes en su territorio.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Desempeño por Producto - Ana</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-reps-ana"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Ana se especializa en Producto A (47.7%) y C (34.2%), con menor enfoque en B (18.1%). Su fortaleza en productos premium sugiere habilidades consultivas destacadas para clientes de mayor valor.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Desempeño por Producto - Juan</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-reps-juan"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Juan mantiene similar especialización: Producto A (47.7%) y C (37.8%), B (14.5%). Su patrón similar a Ana pero con menores volúmenes indica potencial de mejora en técnicas de venta.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Desempeño por Producto - Pedro</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-reps-pedro"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Pedro logra mayor equilibrio entre productos: A (37.3%), C (36.5%), B (26.2%). Su portfolio diversificado y volúmenes altos demuestran versatilidad y dominio integral del mercado.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Comparación por Región</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-reps-region"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        El equipo Norte (Ana + Juan) genera $183M vs Pedro solo con $115.6M en el Sur, sin embargo Pedro individualmente supera a cualquier representante del Norte, evidenciando su eficiencia operativa superior.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección 4: Feedback de Clientes -->
+        <section id="feedback" class="section">
+            <h2>Feedback de Clientes por Producto</h2>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Evolución de Calificaciones</h3>
+                    <div class="chart-wrapper large">
+                        <canvas id="chart-feedback-calificaciones"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Producto C lidera consistentemente en satisfacción (4.7-4.9/5), seguido por Producto A (4.5-4.8/5) y Producto B (3.7-4.1/5). El gap de satisfacción entre C y B indica oportunidades de mejora en Producto B.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Calificación Promedio por Producto</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-feedback-promedio"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Ranking definitivo de satisfacción: Producto C (4.75/5), Producto A (4.62/5) y Producto B (3.92/5). Producto B requiere análisis urgente de factores que afectan la experiencia del cliente.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Comentarios Positivos vs Negativos</h3>
+                    <div class="chart-wrapper large">
+                        <canvas id="chart-feedback-comentarios"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        El volumen de comentarios positivos supera ampliamente a los negativos en todos los productos. Producto C genera el mayor engagement positivo, mientras que B acumula la mayor proporción de feedback negativo.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Ratio Positivo/Negativo</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-feedback-ratio"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Producto C alcanza ratio excepcional de 20.4:1 (positivos vs negativos), Producto A logra 9.5:1 y Producto B mantiene 2.8:1. Estos ratios confirman las oportunidades de mejora en Producto B.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección 5: Inventario -->
+        <section id="inventario" class="section">
+            <h2>Inventario por Producto y Almacén</h2>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Stock Final por Producto y Almacén</h3>
+                    <div class="chart-wrapper large">
+                        <canvas id="chart-inventario-stock"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Productos A y B mantienen stock positivo en ambos almacenes (A: 270 unidades, B: 590 unidades), mientras que Producto C solo opera desde Almacén 2 (450 unidades). Producto B presenta el mayor stock disponible.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Evolución de Stock - Almacén 1</h3>
+                    <div class="chart-wrapper large">
+                        <canvas id="chart-inventario-almacen1"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Almacén 1 muestra tendencia decreciente crítica en Producto A (de 400 a 130 unidades), mientras Producto B mantiene niveles saludables (650-690). Producto C no se maneja en esta ubicación.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Evolución de Stock - Almacén 2</h3>
+                    <div class="chart-wrapper large">
+                        <canvas id="chart-inventario-almacen2"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Almacén 2 presenta volatilidad extrema en Producto B (llegando a -100 en noviembre), situación crítica de desabasto. Productos A y C mantienen niveles más estables pero decrecientes.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Rotación de Inventario</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-inventario-rotacion"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        <em>La rotación mide cuántas unidades salen del inventario mensualmente en promedio.</em> Producto B lidera con 518 unidades/mes (alta demanda/movimiento), seguido por A con 422 unidades/mes y C con 296 unidades/mes. <strong>Mayor rotación indica productos más dinámicos que requieren reposición frecuente.</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección 6: KPIs -->
+        <section id="kpis" class="section">
+            <h2>KPIs de Ventas y Desempeño</h2>
+            
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Cumplimiento de Metas por Producto</h3>
+                    <div class="chart-wrapper large">
+                        <canvas id="chart-kpi-cumplimiento"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        El cumplimiento promedio ronda el 95-98% para todos los productos. Producto A muestra mayor consistencia en alcanzar metas, mientras que B y C presentan más variabilidad mensual en el desempeño.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Desviación Promedio por Producto</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-kpi-desviacion"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        <em>La desviación muestra qué tan lejos están las ventas reales de las metas establecidas.</em> Producto A logra desviación casi nula (-0.54%), indicando metas realistas y ejecución precisa. Productos B (-3.37%) y C (-3.15%) <strong>muestran metas ligeramente agresivas o necesidad de optimización en estrategias de venta.</strong> Valores negativos indican ventas por debajo de expectativas.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Metas vs Ventas Reales - Producto A</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-kpi-productoA"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Producto A demuestra ejecución excepcional con ventas reales siguiendo de cerca las metas. Los meses de febrero, marzo, mayo y junio superan objetivos, compensando los faltantes de otros períodos.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Metas vs Ventas Reales - Producto B</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-kpi-productoB"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Producto B muestra el mayor gap entre metas y realidad, especialmente en junio (-5.26%) y diciembre (-4.76%). Esta consistente sub-ejecución sugiere necesidad de revisar estrategia de mercado o ajustar proyecciones.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Metas vs Ventas Reales - Producto C</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-kpi-productoC"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        Producto C presenta patrón similar a B con desempeño sistemáticamente por debajo de metas. Los mayores gaps ocurren en abril (-4.55%) y septiembre (-4.55%), indicando estacionalidad en los desafíos.
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Tendencia de Cumplimiento</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-kpi-tendencia"></canvas>
+                    </div>
+                    <div class="chart-conclusion">
+                        El cumplimiento total fluctúa entre 93.9% (abril) y 98.9% (febrero). La tendencia muestra recuperación hacia fin de año pero con volatilidad que requiere estrategias de estabilización para lograr consistencia en el desempeño.
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Configuración global de Chart.js
+        Chart.defaults.color = '#e0e0e0';
+        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+        
+        // Paleta de colores consistente
+        const colores = {
+            productoA: '#3498db',   // Azul
+            productoB: '#2ecc71',   // Verde
+            productoC: '#f39c12',   // Naranja
+            norte: '#9b59b6',       // Púrpura
+            sur: '#e74c3c',         // Rojo
+            ana: '#1abc9c',         // Turquesa
+            juan: '#34495e',        // Gris oscuro
+            pedro: '#e67e22',       // Naranja oscuro
+            almacen1: '#95a5a6',    // Gris plateado
+            almacen2: '#f1c40f'     // Amarillo
+        };
+        
+        // Datos completos
+        const ventasPorProducto = [{"Mes":"Enero","Producto A":10,"Producto B":7.5,"Producto C":9.8,"Total Ventas (USD)":27.3},{"Mes":"Febrero","Producto A":11.5,"Producto B":8.2,"Producto C":10.1,"Total Ventas (USD)":29.8},{"Mes":"Marzo","Producto A":12,"Producto B":8.5,"Producto C":10.5,"Total Ventas (USD)":31},{"Mes":"Abril","Producto A":9.8,"Producto B":7.3,"Producto C":9.4,"Total Ventas (USD)":26.5},{"Mes":"Mayo","Producto A":13.2,"Producto B":9.2,"Producto C":11.3,"Total Ventas (USD)":33.7},{"Mes":"Junio","Producto A":14.5,"Producto B":9.8,"Producto C":12,"Total Ventas (USD)":36.3},{"Mes":"Julio","Producto A":12,"Producto B":8.7,"Producto C":10.7,"Total Ventas (USD)":31.4},{"Mes":"Agosto","Producto A":13,"Producto B":9.3,"Producto C":11.2,"Total Ventas (USD)":33.5},{"Mes":"Septiembre","Producto A":10.8,"Producto B":7.8,"Producto C":9.9,"Total Ventas (USD)":28.5},{"Mes":"Octubre","Producto A":11.2,"Producto B":8.1,"Producto C":10.4,"Total Ventas (USD)":29.7},{"Mes":"Noviembre","Producto A":9.5,"Producto B":7.4,"Producto C":9.6,"Total Ventas (USD)":26.5},{"Mes":"Diciembre","Producto A":15,"Producto B":10,"Producto C":12.5,"Total Ventas (USD)":37.5}];
+        
+        const ventasPorRegion = [{"Mes":"Enero","Región":"Norte","Producto A":5,"Producto B":3,"Producto C":4.5,"Total Ventas (USD)":12.5},{"Mes":"Enero","Región":"Sur","Producto A":5.5,"Producto B":4.5,"Producto C":5.3,"Total Ventas (USD)":15.3},{"Mes":"Febrero","Región":"Norte","Producto A":6,"Producto B":3.5,"Producto C":4.8,"Total Ventas (USD)":14.3},{"Mes":"Febrero","Región":"Sur","Producto A":6.2,"Producto B":4.8,"Producto C":5.6,"Total Ventas (USD)":16.6},{"Mes":"Marzo","Región":"Norte","Producto A":6.5,"Producto B":4,"Producto C":5.1,"Total Ventas (USD)":15.6},{"Mes":"Marzo","Región":"Sur","Producto A":6.3,"Producto B":4.7,"Producto C":5.4,"Total Ventas (USD)":16.4},{"Mes":"Abril","Región":"Norte","Producto A":4.9,"Producto B":3.5,"Producto C":4.3,"Total Ventas (USD)":12.7},{"Mes":"Abril","Región":"Sur","Producto A":5.1,"Producto B":4.3,"Producto C":5,"Total Ventas (USD)":14.4},{"Mes":"Mayo","Región":"Norte","Producto A":7.2,"Producto B":4.5,"Producto C":6,"Total Ventas (USD)":17.7},{"Mes":"Mayo","Región":"Sur","Producto A":6.5,"Producto B":4.7,"Producto C":5.8,"Total Ventas (USD)":17},{"Mes":"Junio","Región":"Norte","Producto A":7,"Producto B":5.2,"Producto C":6.2,"Total Ventas (USD)":18.4},{"Mes":"Junio","Región":"Sur","Producto A":6.8,"Producto B":4.9,"Producto C":6.5,"Total Ventas (USD)":18.2},{"Mes":"Julio","Región":"Norte","Producto A":6.5,"Producto B":4.8,"Producto C":5.9,"Total Ventas (USD)":17.2},{"Mes":"Julio","Región":"Sur","Producto A":6.7,"Producto B":5,"Producto C":6.3,"Total Ventas (USD)":18},{"Mes":"Agosto","Región":"Norte","Producto A":7.1,"Producto B":5.3,"Producto C":6.5,"Total Ventas (USD)":18.9},{"Mes":"Agosto","Región":"Sur","Producto A":6.9,"Producto B":5.2,"Producto C":6.6,"Total Ventas (USD)":18.7},{"Mes":"Septiembre","Región":"Norte","Producto A":6.8,"Producto B":4.9,"Producto C":6.1,"Total Ventas (USD)":17.8},{"Mes":"Septiembre","Región":"Sur","Producto A":7,"Producto B":5.3,"Producto C":6.4,"Total Ventas (USD)":18.7},{"Mes":"Octubre","Región":"Norte","Producto A":6.9,"Producto B":5.1,"Producto C":6.3,"Total Ventas (USD)":18.3},{"Mes":"Octubre","Región":"Sur","Producto A":7.2,"Producto B":5.4,"Producto C":6.5,"Total Ventas (USD)":19.1},{"Mes":"Noviembre","Región":"Norte","Producto A":7.3,"Producto B":5.4,"Producto C":6.8,"Total Ventas (USD)":19.5},{"Mes":"Noviembre","Región":"Sur","Producto A":7.1,"Producto B":5.3,"Producto C":6.6,"Total Ventas (USD)":19},{"Mes":"Diciembre","Región":"Norte","Producto A":7.8,"Producto B":5.8,"Producto C":7,"Total Ventas (USD)":20.6},{"Mes":"Diciembre","Región":"Sur","Producto A":7.5,"Producto B":5.7,"Producto C":7.2,"Total Ventas (USD)":20.4}];
+        
+        const desempenoReps = [{"Mes":"Enero","Región":"Norte","Representante":"Ana","Producto A":3.5,"Producto B":2,"Producto C":2.5,"Total Ventas (USD)":8},{"Mes":"Enero","Región":"Norte","Representante":"Juan","Producto A":1.5,"Producto B":1,"Producto C":2,"Total Ventas (USD)":4.5},{"Mes":"Enero","Región":"Sur","Representante":"Pedro","Producto A":3,"Producto B":2,"Producto C":3.3,"Total Ventas (USD)":8.3},{"Mes":"Febrero","Región":"Norte","Representante":"Ana","Producto A":3.8,"Producto B":2.2,"Producto C":2.8,"Total Ventas (USD)":8.8},{"Mes":"Febrero","Región":"Norte","Representante":"Juan","Producto A":1.7,"Producto B":1.1,"Producto C":2,"Total Ventas (USD)":4.8},{"Mes":"Febrero","Región":"Sur","Representante":"Pedro","Producto A":3.2,"Producto B":2.3,"Producto C":3.5,"Total Ventas (USD)":9},{"Mes":"Marzo","Región":"Norte","Representante":"Ana","Producto A":4,"Producto B":2.5,"Producto C":2.9,"Total Ventas (USD)":9.4},{"Mes":"Marzo","Región":"Norte","Representante":"Juan","Producto A":1.8,"Producto B":1.2,"Producto C":2.1,"Total Ventas (USD)":5.1},{"Mes":"Marzo","Región":"Sur","Representante":"Pedro","Producto A":3.5,"Producto B":2.5,"Producto C":3.6,"Total Ventas (USD)":9.6},{"Mes":"Abril","Región":"Norte","Representante":"Ana","Producto A":3.2,"Producto B":2,"Producto C":2.7,"Total Ventas (USD)":7.9},{"Mes":"Abril","Región":"Norte","Representante":"Juan","Producto A":1.6,"Producto B":1.1,"Producto C":1.8,"Total Ventas (USD)":4.5},{"Mes":"Abril","Región":"Sur","Representante":"Pedro","Producto A":3.4,"Producto B":2.1,"Producto C":3.2,"Total Ventas (USD)":8.7},{"Mes":"Mayo","Región":"Norte","Representante":"Ana","Producto A":4.2,"Producto B":2.6,"Producto C":3.1,"Total Ventas (USD)":9.9},{"Mes":"Mayo","Región":"Norte","Representante":"Juan","Producto A":1.9,"Producto B":1.3,"Producto C":2.2,"Total Ventas (USD)":5.4},{"Mes":"Mayo","Región":"Sur","Representante":"Pedro","Producto A":3.8,"Producto B":2.4,"Producto C":3.8,"Total Ventas (USD)":10},{"Mes":"Junio","Región":"Norte","Representante":"Ana","Producto A":4.3,"Producto B":2.7,"Producto C":3.4,"Total Ventas (USD)":10.4},{"Mes":"Junio","Región":"Norte","Representante":"Juan","Producto A":2,"Producto B":1.4,"Producto C":2.3,"Total Ventas (USD)":5.7},{"Mes":"Junio","Región":"Sur","Representante":"Pedro","Producto A":3.9,"Producto B":2.5,"Producto C":3.9,"Total Ventas (USD)":10.3},{"Mes":"Julio","Región":"Norte","Representante":"Ana","Producto A":4,"Producto B":2.5,"Producto C":3.2,"Total Ventas (USD)":9.7},{"Mes":"Julio","Región":"Norte","Representante":"Juan","Producto A":1.8,"Producto B":1.3,"Producto C":2.1,"Total Ventas (USD)":5.2},{"Mes":"Julio","Región":"Sur","Representante":"Pedro","Producto A":3.7,"Producto B":2.4,"Producto C":3.7,"Total Ventas (USD)":9.8},{"Mes":"Agosto","Región":"Norte","Representante":"Ana","Producto A":4.1,"Producto B":2.6,"Producto C":3.3,"Total Ventas (USD)":10},{"Mes":"Agosto","Región":"Norte","Representante":"Juan","Producto A":1.9,"Producto B":1.3,"Producto C":2.2,"Total Ventas (USD)":5.4},{"Mes":"Agosto","Región":"Sur","Representante":"Pedro","Producto A":3.8,"Producto B":2.5,"Producto C":3.9,"Total Ventas (USD)":10.2},{"Mes":"Septiembre","Región":"Norte","Representante":"Ana","Producto A":4.2,"Producto B":2.7,"Producto C":3.4,"Total Ventas (USD)":10.3},{"Mes":"Septiembre","Región":"Norte","Representante":"Juan","Producto A":2,"Producto B":1.4,"Producto C":2.3,"Total Ventas (USD)":5.7},{"Mes":"Septiembre","Región":"Sur","Representante":"Pedro","Producto A":4,"Producto B":2.6,"Producto C":4,"Total Ventas (USD)":10.6},{"Mes":"Octubre","Región":"Norte","Representante":"Ana","Producto A":4.3,"Producto B":2.8,"Producto C":3.5,"Total Ventas (USD)":10.6},{"Mes":"Octubre","Región":"Norte","Representante":"Juan","Producto A":2.1,"Producto B":1.5,"Producto C":2.4,"Total Ventas (USD)":6},{"Mes":"Octubre","Región":"Sur","Representante":"Pedro","Producto A":4.1,"Producto B":2.7,"Producto C":4.1,"Total Ventas (USD)":10.9},{"Mes":"Noviembre","Región":"Norte","Representante":"Ana","Producto A":4.4,"Producto B":2.9,"Producto C":3.6,"Total Ventas (USD)":10.9},{"Mes":"Noviembre","Región":"Norte","Representante":"Juan","Producto A":2.2,"Producto B":1.5,"Producto C":2.5,"Total Ventas (USD)":6.2},{"Mes":"Noviembre","Región":"Sur","Representante":"Pedro","Producto A":4.2,"Producto B":2.8,"Producto C":4.2,"Total Ventas (USD)":11.2},{"Mes":"Diciembre","Región":"Norte","Representante":"Ana","Producto A":4.5,"Producto B":3,"Producto C":3.8,"Total Ventas (USD)":11.3},{"Mes":"Diciembre","Región":"Norte","Representante":"Juan","Producto A":2.3,"Producto B":1.6,"Producto C":2.6,"Total Ventas (USD)":6.5},{"Mes":"Diciembre","Región":"Sur","Representante":"Pedro","Producto A":4.3,"Producto B":2.9,"Producto C":4.3,"Total Ventas (USD)":11.5}];
+        
+        const feedback = [{"Mes":"Enero","Producto":"Producto A","Calificación Media":4.5,"Comentarios Positivos":120,"Comentarios Negativos":15},{"Mes":"Enero","Producto":"Producto B","Calificación Media":3.8,"Comentarios Positivos":90,"Comentarios Negativos":40},{"Mes":"Enero","Producto":"Producto C","Calificación Media":4.7,"Comentarios Positivos":150,"Comentarios Negativos":10},{"Mes":"Febrero","Producto":"Producto A","Calificación Media":4.6,"Comentarios Positivos":130,"Comentarios Negativos":12},{"Mes":"Febrero","Producto":"Producto B","Calificación Media":3.9,"Comentarios Positivos":95,"Comentarios Negativos":35},{"Mes":"Febrero","Producto":"Producto C","Calificación Media":4.8,"Comentarios Positivos":160,"Comentarios Negativos":8},{"Mes":"Marzo","Producto":"Producto A","Calificación Media":4.7,"Comentarios Positivos":140,"Comentarios Negativos":10},{"Mes":"Marzo","Producto":"Producto B","Calificación Media":4,"Comentarios Positivos":100,"Comentarios Negativos":30},{"Mes":"Marzo","Producto":"Producto C","Calificación Media":4.9,"Comentarios Positivos":170,"Comentarios Negativos":5},{"Mes":"Abril","Producto":"Producto A","Calificación Media":4.5,"Comentarios Positivos":110,"Comentarios Negativos":20},{"Mes":"Abril","Producto":"Producto B","Calificación Media":3.7,"Comentarios Positivos":85,"Comentarios Negativos":45},{"Mes":"Abril","Producto":"Producto C","Calificación Media":4.6,"Comentarios Positivos":140,"Comentarios Negativos":12},{"Mes":"Mayo","Producto":"Producto A","Calificación Media":4.8,"Comentarios Positivos":150,"Comentarios Negativos":7},{"Mes":"Mayo","Producto":"Producto B","Calificación Media":4.1,"Comentarios Positivos":105,"Comentarios Negativos":25},{"Mes":"Mayo","Producto":"Producto C","Calificación Media":4.9,"Comentarios Positivos":180,"Comentarios Negativos":3},{"Mes":"Junio","Producto":"Producto A","Calificación Media":4.6,"Comentarios Positivos":130,"Comentarios Negativos":12},{"Mes":"Junio","Producto":"Producto B","Calificación Media":3.9,"Comentarios Positivos":95,"Comentarios Negativos":35},{"Mes":"Junio","Producto":"Producto C","Calificación Media":4.7,"Comentarios Positivos":160,"Comentarios Negativos":10},{"Mes":"Julio","Producto":"Producto A","Calificación Media":4.7,"Comentarios Positivos":140,"Comentarios Negativos":10},{"Mes":"Julio","Producto":"Producto B","Calificación Media":4,"Comentarios Positivos":100,"Comentarios Negativos":30},{"Mes":"Julio","Producto":"Producto C","Calificación Media":4.8,"Comentarios Positivos":170,"Comentarios Negativos":8},{"Mes":"Agosto","Producto":"Producto A","Calificación Media":4.6,"Comentarios Positivos":130,"Comentarios Negativos":12},{"Mes":"Agosto","Producto":"Producto B","Calificación Media":3.9,"Comentarios Positivos":90,"Comentarios Negativos":40},{"Mes":"Agosto","Producto":"Producto C","Calificación Media":4.7,"Comentarios Positivos":160,"Comentarios Negativos":10},{"Mes":"Septiembre","Producto":"Producto A","Calificación Media":4.5,"Comentarios Positivos":120,"Comentarios Negativos":15},{"Mes":"Septiembre","Producto":"Producto B","Calificación Media":3.8,"Comentarios Positivos":85,"Comentarios Negativos":45},{"Mes":"Septiembre","Producto":"Producto C","Calificación Media":4.6,"Comentarios Positivos":150,"Comentarios Negativos":12},{"Mes":"Octubre","Producto":"Producto A","Calificación Media":4.7,"Comentarios Positivos":140,"Comentarios Negativos":10},{"Mes":"Octubre","Producto":"Producto B","Calificación Media":4,"Comentarios Positivos":100,"Comentarios Negativos":30},{"Mes":"Octubre","Producto":"Producto C","Calificación Media":4.8,"Comentarios Positivos":170,"Comentarios Negativos":5},{"Mes":"Noviembre","Producto":"Producto A","Calificación Media":4.6,"Comentarios Positivos":130,"Comentarios Negativos":12},{"Mes":"Noviembre","Producto":"Producto B","Calificación Media":3.9,"Comentarios Positivos":95,"Comentarios Negativos":35},{"Mes":"Noviembre","Producto":"Producto C","Calificación Media":4.7,"Comentarios Positivos":160,"Comentarios Negativos":8},{"Mes":"Diciembre","Producto":"Producto A","Calificación Media":4.8,"Comentarios Positivos":150,"Comentarios Negativos":7},{"Mes":"Diciembre","Producto":"Producto B","Calificación Media":4.1,"Comentarios Positivos":105,"Comentarios Negativos":25},{"Mes":"Diciembre","Producto":"Producto C","Calificación Media":4.9,"Comentarios Positivos":180,"Comentarios Negativos":3}];
+        
+        const inventario = [{"Mes":"Enero","Producto":"Producto A","Almacén":"Almacén 1","Stock Inicial":500,"Entradas":300,"Salidas":400,"Stock Final":400},{"Mes":"Enero","Producto":"Producto A","Almacén":"Almacén 2","Stock Inicial":600,"Entradas":250,"Salidas":350,"Stock Final":500},{"Mes":"Enero","Producto":"Producto B","Almacén":"Almacén 1","Stock Inicial":700,"Entradas":400,"Salidas":450,"Stock Final":650},{"Mes":"Enero","Producto":"Producto B","Almacén":"Almacén 2","Stock Inicial":800,"Entradas":350,"Salidas":500,"Stock Final":650},{"Mes":"Enero","Producto":"Producto C","Almacén":"Almacén 2","Stock Inicial":800,"Entradas":300,"Salidas":500,"Stock Final":600},{"Mes":"Febrero","Producto":"Producto A","Almacén":"Almacén 1","Stock Inicial":400,"Entradas":350,"Salidas":420,"Stock Final":330},{"Mes":"Febrero","Producto":"Producto A","Almacén":"Almacén 2","Stock Inicial":500,"Entradas":300,"Salidas":380,"Stock Final":420},{"Mes":"Febrero","Producto":"Producto B","Almacén":"Almacén 1","Stock Inicial":650,"Entradas":450,"Salidas":480,"Stock Final":620},{"Mes":"Febrero","Producto":"Producto B","Almacén":"Almacén 2","Stock Inicial":650,"Entradas":400,"Salidas":520,"Stock Final":530},{"Mes":"Febrero","Producto":"Producto C","Almacén":"Almacén 2","Stock Inicial":600,"Entradas":400,"Salidas":350,"Stock Final":650},{"Mes":"Marzo","Producto":"Producto A","Almacén":"Almacén 1","Stock Inicial":330,"Entradas":400,"Salidas":450,"Stock Final":280},{"Mes":"Marzo","Producto":"Producto A","Almacén":"Almacén 2","Stock Inicial":420,"Entradas":350,"Salidas":400,"Stock Final":370},{"Mes":"Marzo","Producto":"Producto B","Almacén":"Almacén 1","Stock Inicial":620,"Entradas":500,"Salidas":500,"Stock Final":620},{"Mes":"Marzo","Producto":"Producto B","Almacén":"Almacén 2","Stock Inicial":530,"Entradas":450,"Salidas":550,"Stock Final":430},{"Mes":"Marzo","Producto":"Producto C","Almacén":"Almacén 2","Stock Inicial":650,"Entradas":250,"Salidas":400,"Stock Final":500},{"Mes":"Abril","Producto":"Producto A","Almacén":"Almacén 1","Stock Inicial":280,"Entradas":350,"Salidas":380,"Stock Final":250},{"Mes":"Abril","Producto":"Producto A","Almacén":"Almacén 2","Stock Inicial":370,"Entradas":300,"Salidas":350,"Stock Final":320},{"Mes":"Abril","Producto":"Producto B","Almacén":"Almacén 1","Stock Inicial":620,"Entradas":420,"Salidas":460,"Stock Final":580},{"Mes":"Abril","Producto":"Producto B","Almacén":"Almacén 2","Stock Inicial":430,"Entradas":380,"Salidas":480,"Stock Final":330},{"Mes":"Abril","Producto":"Producto C","Almacén":"Almacén 2","Stock Inicial":500,"Entradas":200,"Salidas":250,"Stock Final":450},{"Mes":"Mayo","Producto":"Producto A","Almacén":"Almacén 1","Stock Inicial":250,"Entradas":450,"Salidas":480,"Stock Final":220},{"Mes":"Mayo","Producto":"Producto A","Almacén":"Almacén 2","Stock Inicial":320,"Entradas":400,"Salidas":430,"Stock Final":290},{"Mes":"Mayo","Producto":"Producto B","Almacén":"Almacén 1","Stock Inicial":580,"Entradas":550,"Salidas":530,"Stock Final":600},{"Mes":"Mayo","Producto":"Producto B","Almacén":"Almacén 2","Stock Inicial":330,"Entradas":500,"Salidas":560,"Stock Final":270},{"Mes":"Mayo","Producto":"Producto C","Almacén":"Almacén 2","Stock Inicial":450,"Entradas":300,"Salidas":350,"Stock Final":400},{"Mes":"Junio","Producto":"Producto A","Almacén":"Almacén 1","Stock Inicial":220,"Entradas":500,"Salidas":520,"Stock Final":200},{"Mes":"Junio","Producto":"Producto A","Almacén":"Almacén 2","Stock Inicial":290,"Entradas":450,"Salidas":480,"Stock Final":260},{"Mes":"Junio","Producto":"Producto B","Almacén":"Almacén 1","Stock Inicial":600,"Entradas":600,"Salidas":580,"Stock Final":620},{"Mes":"Junio","Producto":"Producto B","Almacén":"Almacén 2","Stock Inicial":270,"Entradas":550,"Salidas":600,"Stock Final":220},{"Mes":"Junio","Producto":"Producto C","Almacén":"Almacén 2","Stock Inicial":400,"Entradas":200,"Salidas":350,"Stock Final":250},{"Mes":"Julio","Producto":"Producto A","Almacén":"Almacén 1","Stock Inicial":200,"Entradas":430,"Salidas":450,"Stock Final":180},{"Mes":"Julio","Producto":"Producto A","Almacén":"Almacén 2","Stock Inicial":260,"Entradas":380,"Salidas":400,"Stock Final":240},{"Mes":"Julio","Producto":"Producto B","Almacén":"Almacén 1","Stock Inicial":620,"Entradas":520,"Salidas":510,"Stock Final":630},{"Mes":"Julio","Producto":"Producto B","Almacén":"Almacén 2","Stock Inicial":220,"Entradas":470,"Salidas":520,"Stock Final":170},{"Mes":"Julio","Producto":"Producto C","Almacén":"Almacén 2","Stock Inicial":250,"Entradas":250,"Salidas":200,"Stock Final":300},{"Mes":"Agosto","Producto":"Producto A","Almacén":"Almacén 1","Stock Inicial":180,"Entradas":480,"Salidas":490,"Stock Final":170},{"Mes":"Agosto","Producto":"Producto A","Almacén":"Almacén 2","Stock Inicial":240,"Entradas":430,"Salidas":450,"Stock Final":220},{"Mes":"Agosto","Producto":"Producto B","Almacén":"Almacén 1","Stock Inicial":630,"Entradas":580,"Salidas":560,"Stock Final":650},{"Mes":"Agosto","Producto":"Producto B","Almacén":"Almacén 2","Stock Inicial":170,"Entradas":530,"Salidas":580,"Stock Final":120},{"Mes":"Agosto","Producto":"Producto C","Almacén":"Almacén 2","Stock Inicial":300,"Entradas":200,"Salidas":250,"Stock Final":250},{"Mes":"Septiembre","Producto":"Producto A","Almacén":"Almacén 1","Stock Inicial":170,"Entradas":410,"Salidas":420,"Stock Final":160},{"Mes":"Septiembre","Producto":"Producto A","Almacén":"Almacén 2","Stock Inicial":220,"Entradas":360,"Salidas":380,"Stock Final":200},{"Mes":"Septiembre","Producto":"Producto B","Almacén":"Almacén 1","Stock Inicial":650,"Entradas":490,"Salidas":480,"Stock Final":660},{"Mes":"Septiembre","Producto":"Producto B","Almacén":"Almacén 2","Stock Inicial":120,"Entradas":440,"Salidas":500,"Stock Final":60},{"Mes":"Septiembre","Producto":"Producto C","Almacén":"Almacén 2","Stock Inicial":250,"Entradas":250,"Salidas":150,"Stock Final":350},{"Mes":"Octubre","Producto":"Producto A","Almacén":"Almacén 1","Stock Inicial":160,"Entradas":460,"Salidas":470,"Stock Final":150},{"Mes":"Octubre","Producto":"Producto A","Almacén":"Almacén 2","Stock Inicial":200,"Entradas":410,"Salidas":430,"Stock Final":180},{"Mes":"Octubre","Producto":"Producto B","Almacén":"Almacén 1","Stock Inicial":660,"Entradas":540,"Salidas":530,"Stock Final":670},{"Mes":"Octubre","Producto":"Producto B","Almacén":"Almacén 2","Stock Inicial":60,"Entradas":490,"Salidas":540,"Stock Final":10},{"Mes":"Octubre","Producto":"Producto C","Almacén":"Almacén 2","Stock Inicial":350,"Entradas":200,"Salidas":150,"Stock Final":400},{"Mes":"Noviembre","Producto":"Producto A","Almacén":"Almacén 1","Stock Inicial":150,"Entradas":390,"Salidas":400,"Stock Final":140},{"Mes":"Noviembre","Producto":"Producto A","Almacén":"Almacén 2","Stock Inicial":180,"Entradas":340,"Salidas":360,"Stock Final":160},{"Mes":"Noviembre","Producto":"Producto B","Almacén":"Almacén 1","Stock Inicial":670,"Entradas":470,"Salidas":460,"Stock Final":680},{"Mes":"Noviembre","Producto":"Producto B","Almacén":"Almacén 2","Stock Inicial":10,"Entradas":420,"Salidas":480,"Stock Final":-50},{"Mes":"Noviembre","Producto":"Producto C","Almacén":"Almacén 2","Stock Inicial":400,"Entradas":250,"Salidas":300,"Stock Final":350},{"Mes":"Diciembre","Producto":"Producto A","Almacén":"Almacén 1","Stock Inicial":140,"Entradas":550,"Salidas":560,"Stock Final":130},{"Mes":"Diciembre","Producto":"Producto A","Almacén":"Almacén 2","Stock Inicial":160,"Entradas":500,"Salidas":520,"Stock Final":140},{"Mes":"Diciembre","Producto":"Producto B","Almacén":"Almacén 1","Stock Inicial":680,"Entradas":620,"Salidas":610,"Stock Final":690},{"Mes":"Diciembre","Producto":"Producto B","Almacén":"Almacén 2","Stock Inicial":-50,"Entradas":570,"Salidas":620,"Stock Final":-100},{"Mes":"Diciembre","Producto":"Producto C","Almacén":"Almacén 2","Stock Inicial":350,"Entradas":300,"Salidas":200,"Stock Final":450}];
+        
+        const kpis = [{"Mes":"Enero","Producto":"Producto A","Meta de Ventas (USD)":10,"Ventas Reales (USD)":9.8,"Desviación (%)":"-2.00"},{"Mes":"Enero","Producto":"Producto B","Meta de Ventas (USD)":8,"Ventas Reales (USD)":7.5,"Desviación (%)":"-6.25"},{"Mes":"Enero","Producto":"Producto C","Meta de Ventas (USD)":10.5,"Ventas Reales (USD)":10,"Desviación (%)":"-4.76"},{"Mes":"Febrero","Producto":"Producto A","Meta de Ventas (USD)":11,"Ventas Reales (USD)":11.5,"Desviación (%)":"4.55"},{"Mes":"Febrero","Producto":"Producto B","Meta de Ventas (USD)":8.5,"Ventas Reales (USD)":8.2,"Desviación (%)":"-3.53"},{"Mes":"Febrero","Producto":"Producto C","Meta de Ventas (USD)":11,"Ventas Reales (USD)":10.8,"Desviación (%)":"-1.82"},{"Mes":"Marzo","Producto":"Producto A","Meta de Ventas (USD)":12,"Ventas Reales (USD)":12.3,"Desviación (%)":"2.50"},{"Mes":"Marzo","Producto":"Producto B","Meta de Ventas (USD)":9,"Ventas Reales (USD)":8.9,"Desviación (%)":"-1.11"},{"Mes":"Marzo","Producto":"Producto C","Meta de Ventas (USD)":11.5,"Ventas Reales (USD)":11,"Desviación (%)":"-4.35"},{"Mes":"Abril","Producto":"Producto A","Meta de Ventas (USD)":10.5,"Ventas Reales (USD)":10,"Desviación (%)":"-4.76"},{"Mes":"Abril","Producto":"Producto B","Meta de Ventas (USD)":8.5,"Ventas Reales (USD)":8.2,"Desviación (%)":"-3.53"},{"Mes":"Abril","Producto":"Producto C","Meta de Ventas (USD)":11,"Ventas Reales (USD)":10.5,"Desviación (%)":"-4.55"},{"Mes":"Mayo","Producto":"Producto A","Meta de Ventas (USD)":13,"Ventas Reales (USD)":13.5,"Desviación (%)":"3.85"},{"Mes":"Mayo","Producto":"Producto B","Meta de Ventas (USD)":9,"Ventas Reales (USD)":8.7,"Desviación (%)":"-3.33"},{"Mes":"Mayo","Producto":"Producto C","Meta de Ventas (USD)":12,"Ventas Reales (USD)":11.8,"Desviación (%)":"-1.67"},{"Mes":"Junio","Producto":"Producto A","Meta de Ventas (USD)":14,"Ventas Reales (USD)":14.5,"Desviación (%)":"3.57"},{"Mes":"Junio","Producto":"Producto B","Meta de Ventas (USD)":9.5,"Ventas Reales (USD)":9,"Desviación (%)":"-5.26"},{"Mes":"Junio","Producto":"Producto C","Meta de Ventas (USD)":13,"Ventas Reales (USD)":12.8,"Desviación (%)":"-1.54"},{"Mes":"Julio","Producto":"Producto A","Meta de Ventas (USD)":12,"Ventas Reales (USD)":12,"Desviación (%)":"0.00"},{"Mes":"Julio","Producto":"Producto B","Meta de Ventas (USD)":8.8,"Ventas Reales (USD)":8.5,"Desviación (%)":"-3.41"},{"Mes":"Julio","Producto":"Producto C","Meta de Ventas (USD)":11,"Ventas Reales (USD)":10.5,"Desviación (%)":"-4.55"},{"Mes":"Agosto","Producto":"Producto A","Meta de Ventas (USD)":13.5,"Ventas Reales (USD)":13,"Desviación (%)":"-3.70"},{"Mes":"Agosto","Producto":"Producto B","Meta de Ventas (USD)":9.5,"Ventas Reales (USD)":9.2,"Desviación (%)":"-3.16"},{"Mes":"Agosto","Producto":"Producto C","Meta de Ventas (USD)":12.5,"Ventas Reales (USD)":12.2,"Desviación (%)":"-2.40"},{"Mes":"Septiembre","Producto":"Producto A","Meta de Ventas (USD)":11.5,"Ventas Reales (USD)":11,"Desviación (%)":"-4.35"},{"Mes":"Septiembre","Producto":"Producto B","Meta de Ventas (USD)":9,"Ventas Reales (USD)":8.7,"Desviación (%)":"-3.33"},{"Mes":"Septiembre","Producto":"Producto C","Meta de Ventas (USD)":11,"Ventas Reales (USD)":10.5,"Desviación (%)":"-4.55"},{"Mes":"Octubre","Producto":"Producto A","Meta de Ventas (USD)":12.5,"Ventas Reales (USD)":12.3,"Desviación (%)":"-1.60"},{"Mes":"Octubre","Producto":"Producto B","Meta de Ventas (USD)":9.2,"Ventas Reales (USD)":9,"Desviación (%)":"-2.17"},{"Mes":"Octubre","Producto":"Producto C","Meta de Ventas (USD)":12,"Ventas Reales (USD)":11.5,"Desviación (%)":"-4.17"},{"Mes":"Noviembre","Producto":"Producto A","Meta de Ventas (USD)":10,"Ventas Reales (USD)":9.7,"Desviación (%)":"-3.00"},{"Mes":"Noviembre","Producto":"Producto B","Meta de Ventas (USD)":8.5,"Ventas Reales (USD)":8.3,"Desviación (%)":"-2.35"},{"Mes":"Noviembre","Producto":"Producto C","Meta de Ventas (USD)":10.5,"Ventas Reales (USD)":10.2,"Desviación (%)":"-2.86"},{"Mes":"Diciembre","Producto":"Producto A","Meta de Ventas (USD)":15,"Ventas Reales (USD)":14.8,"Desviación (%)":"-1.33"},{"Mes":"Diciembre","Producto":"Producto B","Meta de Ventas (USD)":10.5,"Ventas Reales (USD)":10,"Desviación (%)":"-4.76"},{"Mes":"Diciembre","Producto":"Producto C","Meta de Ventas (USD)":14,"Ventas Reales (USD)":13.5,"Desviación (%)":"-3.57"}];
+        
+        // Calcular métricas destacadas
+        const totalVentasAnual = ventasPorProducto.reduce((sum, row) => sum + row['Total Ventas (USD)'], 0);
+        const promedioMensual = totalVentasAnual / 12;
+        const mejorMes = ventasPorProducto.reduce((max, row) => 
+            row['Total Ventas (USD)'] > max['Total Ventas (USD)'] ? row : max
+        );
+        
+        document.getElementById('total-ventas').textContent = '$' + totalVentasAnual.toFixed(1) + 'M';
+        document.getElementById('promedio-mensual').textContent = '$' + promedioMensual.toFixed(1) + 'M';
+        document.getElementById('mejor-mes').textContent = mejorMes.Mes;
+        
+        // Funciones auxiliares
+        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        
+        const crearGrafico = (id, config) => {
+            const ctx = document.getElementById(id).getContext('2d');
+            return new Chart(ctx, config);
+        };
+        
+        // SECCIÓN 1: VENTAS POR PRODUCTO
+        
+        // 1.1 Evolución mensual de ventas (líneas)
+        crearGrafico('chart-ventas-linea', {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Producto A',
+                        data: ventasPorProducto.map(d => d['Producto A']),
+                        borderColor: colores.productoA,
+                        backgroundColor: colores.productoA + '20',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Producto B',
+                        data: ventasPorProducto.map(d => d['Producto B']),
+                        borderColor: colores.productoB,
+                        backgroundColor: colores.productoB + '20',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Producto C',
+                        data: ventasPorProducto.map(d => d['Producto C']),
+                        borderColor: colores.productoC,
+                        backgroundColor: colores.productoC + '20',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: false
+                    },
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Ventas (USD)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 1.2 Comparación total por producto (barras)
+        const totalesProducto = {
+            A: ventasPorProducto.reduce((sum, d) => sum + d['Producto A'], 0),
+            B: ventasPorProducto.reduce((sum, d) => sum + d['Producto B'], 0),
+            C: ventasPorProducto.reduce((sum, d) => sum + d['Producto C'], 0)
+        };
+        
+        crearGrafico('chart-ventas-barras', {
+            type: 'bar',
+            data: {
+                labels: ['Producto A', 'Producto B', 'Producto C'],
+                datasets: [{
+                    label: 'Ventas Totales',
+                    data: [totalesProducto.A, totalesProducto.B, totalesProducto.C],
+                    backgroundColor: [colores.productoA, colores.productoB, colores.productoC]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Ventas Totales (USD)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 1.3 Participación en ventas (pie)
+        crearGrafico('chart-ventas-pie', {
+            type: 'pie',
+            data: {
+                labels: ['Producto A', 'Producto B', 'Producto C'],
+                datasets: [{
+                    data: [totalesProducto.A, totalesProducto.B, totalesProducto.C],
+                    backgroundColor: [colores.productoA, colores.productoB, colores.productoC]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': ' + percentage + '%';
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    arc: {
+                        borderWidth: 2,
+                        borderColor: '#0f0f23'
+                    }
+                }
+            },
+            plugins: [{
+                id: 'datalabels',
+                afterDatasetsDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    const data = chart.data.datasets[0].data;
+                    const total = data.reduce((a, b) => a + b, 0);
+                    
+                    chart.data.datasets.forEach((dataset, i) => {
+                        const meta = chart.getDatasetMeta(i);
+                        meta.data.forEach((element, index) => {
+                            const percentage = ((data[index] / total) * 100).toFixed(1);
+                            const position = element.tooltipPosition();
+                            
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = 'bold 14px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(percentage + '%', position.x, position.y);
+                        });
+                    });
+                }
+            }]
+        });
+        
+        // 1.4 Tendencia de crecimiento
+        const tendencias = meses.map((mes, i) => {
+            if (i === 0) return 0;
+            const actual = ventasPorProducto[i]['Total Ventas (USD)'];
+            const anterior = ventasPorProducto[i-1]['Total Ventas (USD)'];
+            return ((actual - anterior) / anterior * 100).toFixed(1);
+        });
+        
+        crearGrafico('chart-ventas-tendencia', {
+            type: 'bar',
+            data: {
+                labels: meses,
+                datasets: [{
+                    label: 'Crecimiento %',
+                    data: tendencias,
+                    backgroundColor: tendencias.map(v => v >= 0 ? '#2ecc71' : '#e74c3c')
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Crecimiento (%)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // SECCIÓN 2: VENTAS POR REGIÓN
+        
+        // 2.1 Comparación por región
+        const ventasNorte = ventasPorRegion.filter(d => d.Región === 'Norte');
+        const ventasSur = ventasPorRegion.filter(d => d.Región === 'Sur');
+        
+        crearGrafico('chart-region-barras', {
+            type: 'bar',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Norte',
+                        data: ventasNorte.map(d => d['Total Ventas (USD)']),
+                        backgroundColor: colores.norte
+                    },
+                    {
+                        label: 'Sur',
+                        data: ventasSur.map(d => d['Total Ventas (USD)']),
+                        backgroundColor: colores.sur
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Ventas (USD)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 2.2 Evolución por región
+        crearGrafico('chart-region-lineas', {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Norte',
+                        data: ventasNorte.map(d => d['Total Ventas (USD)']),
+                        borderColor: colores.norte,
+                        backgroundColor: colores.norte + '20',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Sur',
+                        data: ventasSur.map(d => d['Total Ventas (USD)']),
+                        borderColor: colores.sur,
+                        backgroundColor: colores.sur + '20',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Ventas (USD)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 2.3 y 2.4 Distribución por productos en cada región
+        const totalesNorte = {
+            A: ventasNorte.reduce((sum, d) => sum + d['Producto A'], 0),
+            B: ventasNorte.reduce((sum, d) => sum + d['Producto B'], 0),
+            C: ventasNorte.reduce((sum, d) => sum + d['Producto C'], 0)
+        };
+        
+        const totalesSur = {
+            A: ventasSur.reduce((sum, d) => sum + d['Producto A'], 0),
+            B: ventasSur.reduce((sum, d) => sum + d['Producto B'], 0),
+            C: ventasSur.reduce((sum, d) => sum + d['Producto C'], 0)
+        };
+        
+        crearGrafico('chart-region-norte-pie', {
+            type: 'doughnut',
+            data: {
+                labels: ['Producto A', 'Producto B', 'Producto C'],
+                datasets: [{
+                    data: [totalesNorte.A, totalesNorte.B, totalesNorte.C],
+                    backgroundColor: [colores.productoA, colores.productoB, colores.productoC]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': ' + percentage + '%';
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    arc: {
+                        borderWidth: 2,
+                        borderColor: '#0f0f23'
+                    }
+                }
+            },
+            plugins: [{
+                id: 'datalabels',
+                afterDatasetsDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    const data = chart.data.datasets[0].data;
+                    const total = data.reduce((a, b) => a + b, 0);
+                    
+                    chart.data.datasets.forEach((dataset, i) => {
+                        const meta = chart.getDatasetMeta(i);
+                        meta.data.forEach((element, index) => {
+                            const percentage = ((data[index] / total) * 100).toFixed(1);
+                            const position = element.tooltipPosition();
+                            
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = 'bold 12px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(percentage + '%', position.x, position.y);
+                        });
+                    });
+                }
+            }]
+        });
+        
+        crearGrafico('chart-region-sur-pie', {
+            type: 'doughnut',
+            data: {
+                labels: ['Producto A', 'Producto B', 'Producto C'],
+                datasets: [{
+                    data: [totalesSur.A, totalesSur.B, totalesSur.C],
+                    backgroundColor: [colores.productoA, colores.productoB, colores.productoC]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': ' + percentage + '%';
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    arc: {
+                        borderWidth: 2,
+                        borderColor: '#0f0f23'
+                    }
+                }
+            },
+            plugins: [{
+                id: 'datalabels',
+                afterDatasetsDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    const data = chart.data.datasets[0].data;
+                    const total = data.reduce((a, b) => a + b, 0);
+                    
+                    chart.data.datasets.forEach((dataset, i) => {
+                        const meta = chart.getDatasetMeta(i);
+                        meta.data.forEach((element, index) => {
+                            const percentage = ((data[index] / total) * 100).toFixed(1);
+                            const position = element.tooltipPosition();
+                            
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = 'bold 12px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(percentage + '%', position.x, position.y);
+                        });
+                    });
+                }
+            }]
+        });
+        
+        // SECCIÓN 3: DESEMPEÑO REPRESENTANTES
+        
+        // 3.1 Ventas totales por representante
+        const totalesReps = {
+            Ana: desempenoReps.filter(d => d.Representante === 'Ana').reduce((sum, d) => sum + d['Total Ventas (USD)'], 0),
+            Juan: desempenoReps.filter(d => d.Representante === 'Juan').reduce((sum, d) => sum + d['Total Ventas (USD)'], 0),
+            Pedro: desempenoReps.filter(d => d.Representante === 'Pedro').reduce((sum, d) => sum + d['Total Ventas (USD)'], 0)
+        };
+        
+        crearGrafico('chart-reps-total', {
+            type: 'bar',
+            data: {
+                labels: ['Ana', 'Juan', 'Pedro'],
+                datasets: [{
+                    label: 'Ventas Totales',
+                    data: [totalesReps.Ana, totalesReps.Juan, totalesReps.Pedro],
+                    backgroundColor: [colores.ana, colores.juan, colores.pedro]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // 3.2 Evolución mensual por representante
+        const ventasAna = desempenoReps.filter(d => d.Representante === 'Ana');
+        const ventasJuan = desempenoReps.filter(d => d.Representante === 'Juan');
+        const ventasPedro = desempenoReps.filter(d => d.Representante === 'Pedro');
+        
+        crearGrafico('chart-reps-evolucion', {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Ana',
+                        data: ventasAna.map(d => d['Total Ventas (USD)']),
+                        borderColor: colores.ana,
+                        backgroundColor: colores.ana + '20',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Juan',
+                        data: ventasJuan.map(d => d['Total Ventas (USD)']),
+                        borderColor: colores.juan,
+                        backgroundColor: colores.juan + '20',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Pedro',
+                        data: ventasPedro.map(d => d['Total Ventas (USD)']),
+                        borderColor: colores.pedro,
+                        backgroundColor: colores.pedro + '20',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // 3.3, 3.4, 3.5 Desempeño por producto de cada representante
+        const productosAna = {
+            A: ventasAna.reduce((sum, d) => sum + d['Producto A'], 0),
+            B: ventasAna.reduce((sum, d) => sum + d['Producto B'], 0),
+            C: ventasAna.reduce((sum, d) => sum + d['Producto C'], 0)
+        };
+        
+        crearGrafico('chart-reps-ana', {
+            type: 'doughnut',
+            data: {
+                labels: ['Producto A', 'Producto B', 'Producto C'],
+                datasets: [{
+                    data: [productosAna.A, productosAna.B, productosAna.C],
+                    backgroundColor: [colores.productoA, colores.productoB, colores.productoC]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': ' + percentage + '%';
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    arc: {
+                        borderWidth: 2,
+                        borderColor: '#0f0f23'
+                    }
+                }
+            },
+            plugins: [{
+                id: 'datalabels',
+                afterDatasetsDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    const data = chart.data.datasets[0].data;
+                    const total = data.reduce((a, b) => a + b, 0);
+                    
+                    chart.data.datasets.forEach((dataset, i) => {
+                        const meta = chart.getDatasetMeta(i);
+                        meta.data.forEach((element, index) => {
+                            const percentage = ((data[index] / total) * 100).toFixed(1);
+                            const position = element.tooltipPosition();
+                            
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = 'bold 12px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(percentage + '%', position.x, position.y);
+                        });
+                    });
+                }
+            }]
+        });
+        
+        const productosJuan = {
+            A: ventasJuan.reduce((sum, d) => sum + d['Producto A'], 0),
+            B: ventasJuan.reduce((sum, d) => sum + d['Producto B'], 0),
+            C: ventasJuan.reduce((sum, d) => sum + d['Producto C'], 0)
+        };
+        
+        crearGrafico('chart-reps-juan', {
+            type: 'doughnut',
+            data: {
+                labels: ['Producto A', 'Producto B', 'Producto C'],
+                datasets: [{
+                    data: [productosJuan.A, productosJuan.B, productosJuan.C],
+                    backgroundColor: [colores.productoA, colores.productoB, colores.productoC]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': ' + percentage + '%';
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    arc: {
+                        borderWidth: 2,
+                        borderColor: '#0f0f23'
+                    }
+                }
+            },
+            plugins: [{
+                id: 'datalabels',
+                afterDatasetsDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    const data = chart.data.datasets[0].data;
+                    const total = data.reduce((a, b) => a + b, 0);
+                    
+                    chart.data.datasets.forEach((dataset, i) => {
+                        const meta = chart.getDatasetMeta(i);
+                        meta.data.forEach((element, index) => {
+                            const percentage = ((data[index] / total) * 100).toFixed(1);
+                            const position = element.tooltipPosition();
+                            
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = 'bold 12px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(percentage + '%', position.x, position.y);
+                        });
+                    });
+                }
+            }]
+        });
+        
+        const productosPedro = {
+            A: ventasPedro.reduce((sum, d) => sum + d['Producto A'], 0),
+            B: ventasPedro.reduce((sum, d) => sum + d['Producto B'], 0),
+            C: ventasPedro.reduce((sum, d) => sum + d['Producto C'], 0)
+        };
+        
+        crearGrafico('chart-reps-pedro', {
+            type: 'doughnut',
+            data: {
+                labels: ['Producto A', 'Producto B', 'Producto C'],
+                datasets: [{
+                    data: [productosPedro.A, productosPedro.B, productosPedro.C],
+                    backgroundColor: [colores.productoA, colores.productoB, colores.productoC]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': ' + percentage + '%';
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    arc: {
+                        borderWidth: 2,
+                        borderColor: '#0f0f23'
+                    }
+                }
+            },
+            plugins: [{
+                id: 'datalabels',
+                afterDatasetsDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    const data = chart.data.datasets[0].data;
+                    const total = data.reduce((a, b) => a + b, 0);
+                    
+                    chart.data.datasets.forEach((dataset, i) => {
+                        const meta = chart.getDatasetMeta(i);
+                        meta.data.forEach((element, index) => {
+                            const percentage = ((data[index] / total) * 100).toFixed(1);
+                            const position = element.tooltipPosition();
+                            
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = 'bold 12px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(percentage + '%', position.x, position.y);
+                        });
+                    });
+                }
+            }]
+        });
+        
+        // 3.6 Comparación por región
+        const repsNorte = desempenoReps.filter(d => d.Región === 'Norte');
+        const repsSur = desempenoReps.filter(d => d.Región === 'Sur');
+        
+        crearGrafico('chart-reps-region', {
+            type: 'bar',
+            data: {
+                labels: ['Ana', 'Juan', 'Pedro'],
+                datasets: [
+                    {
+                        label: 'Norte',
+                        data: [
+                            repsNorte.filter(d => d.Representante === 'Ana').reduce((sum, d) => sum + d['Total Ventas (USD)'], 0),
+                            repsNorte.filter(d => d.Representante === 'Juan').reduce((sum, d) => sum + d['Total Ventas (USD)'], 0),
+                            0 // Pedro solo trabaja en Sur
+                        ],
+                        backgroundColor: colores.norte
+                    },
+                    {
+                        label: 'Sur',
+                        data: [
+                            0, // Ana solo trabaja en Norte
+                            0, // Juan solo trabaja en Norte
+                            repsSur.filter(d => d.Representante === 'Pedro').reduce((sum, d) => sum + d['Total Ventas (USD)'], 0)
+                        ],
+                        backgroundColor: colores.sur
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // SECCIÓN 4: FEEDBACK DE CLIENTES
+        
+        // 4.1 Evolución de calificaciones
+        const feedbackA = feedback.filter(d => d.Producto === 'Producto A');
+        const feedbackB = feedback.filter(d => d.Producto === 'Producto B');
+        const feedbackC = feedback.filter(d => d.Producto === 'Producto C');
+        
+        crearGrafico('chart-feedback-calificaciones', {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Producto A',
+                        data: feedbackA.map(d => d['Calificación Media']),
+                        borderColor: colores.productoA,
+                        backgroundColor: colores.productoA + '20',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Producto B',
+                        data: feedbackB.map(d => d['Calificación Media']),
+                        borderColor: colores.productoB,
+                        backgroundColor: colores.productoB + '20',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Producto C',
+                        data: feedbackC.map(d => d['Calificación Media']),
+                        borderColor: colores.productoC,
+                        backgroundColor: colores.productoC + '20',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        min: 3,
+                        max: 5,
+                        title: {
+                            display: true,
+                            text: 'Calificación'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 4.2 Calificación promedio
+        const promediosCalif = {
+            A: feedbackA.reduce((sum, d) => sum + d['Calificación Media'], 0) / feedbackA.length,
+            B: feedbackB.reduce((sum, d) => sum + d['Calificación Media'], 0) / feedbackB.length,
+            C: feedbackC.reduce((sum, d) => sum + d['Calificación Media'], 0) / feedbackC.length
+        };
+        
+        crearGrafico('chart-feedback-promedio', {
+            type: 'bar',
+            data: {
+                labels: ['Producto A', 'Producto B', 'Producto C'],
+                datasets: [{
+                    label: 'Calificación Promedio',
+                    data: [promediosCalif.A, promediosCalif.B, promediosCalif.C],
+                    backgroundColor: [colores.productoA, colores.productoB, colores.productoC]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 3,
+                        max: 5
+                    }
+                }
+            }
+        });
+        
+        // 4.3 Comentarios positivos vs negativos
+        crearGrafico('chart-feedback-comentarios', {
+            type: 'bar',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Positivos A',
+                        data: feedbackA.map(d => d['Comentarios Positivos']),
+                        backgroundColor: colores.productoA,
+                        stack: 'positivos'
+                    },
+                    {
+                        label: 'Positivos B',
+                        data: feedbackB.map(d => d['Comentarios Positivos']),
+                        backgroundColor: colores.productoB,
+                        stack: 'positivos'
+                    },
+                    {
+                        label: 'Positivos C',
+                        data: feedbackC.map(d => d['Comentarios Positivos']),
+                        backgroundColor: colores.productoC,
+                        stack: 'positivos'
+                    },
+                    {
+                        label: 'Negativos A',
+                        data: feedbackA.map(d => -d['Comentarios Negativos']),
+                        backgroundColor: colores.productoA + '80',
+                        stack: 'negativos'
+                    },
+                    {
+                        label: 'Negativos B',
+                        data: feedbackB.map(d => -d['Comentarios Negativos']),
+                        backgroundColor: colores.productoB + '80',
+                        stack: 'negativos'
+                    },
+                    {
+                        label: 'Negativos C',
+                        data: feedbackC.map(d => -d['Comentarios Negativos']),
+                        backgroundColor: colores.productoC + '80',
+                        stack: 'negativos'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true
+                    },
+                    y: {
+                        stacked: true
+                    }
+                }
+            }
+        });
+        
+        // 4.4 Ratio positivo/negativo
+        const ratiosProducto = {
+            A: feedbackA.reduce((sum, d) => sum + d['Comentarios Positivos'], 0) / 
+               feedbackA.reduce((sum, d) => sum + d['Comentarios Negativos'], 0),
+            B: feedbackB.reduce((sum, d) => sum + d['Comentarios Positivos'], 0) / 
+               feedbackB.reduce((sum, d) => sum + d['Comentarios Negativos'], 0),
+            C: feedbackC.reduce((sum, d) => sum + d['Comentarios Positivos'], 0) / 
+               feedbackC.reduce((sum, d) => sum + d['Comentarios Negativos'], 0)
+        };
+        
+        crearGrafico('chart-feedback-ratio', {
+            type: 'bar',
+            data: {
+                labels: ['Producto A', 'Producto B', 'Producto C'],
+                datasets: [{
+                    label: 'Ratio Positivo/Negativo',
+                    data: [ratiosProducto.A, ratiosProducto.B, ratiosProducto.C],
+                    backgroundColor: [colores.productoA, colores.productoB, colores.productoC]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+        
+        // SECCIÓN 5: INVENTARIO
+        
+        // 5.1 Stock final por producto y almacén
+        const stockFinalDiciembre = inventario.filter(d => d.Mes === 'Diciembre');
+        
+        crearGrafico('chart-inventario-stock', {
+            type: 'bar',
+            data: {
+                labels: ['Producto A', 'Producto B', 'Producto C'],
+                datasets: [
+                    {
+                        label: 'Almacén 1',
+                        data: [
+                            stockFinalDiciembre.find(d => d.Producto === 'Producto A' && d.Almacén === 'Almacén 1')?.['Stock Final'] || 0,
+                            stockFinalDiciembre.find(d => d.Producto === 'Producto B' && d.Almacén === 'Almacén 1')?.['Stock Final'] || 0,
+                            0 // Producto C no tiene inventario en Almacén 1
+                        ],
+                        backgroundColor: colores.almacen1
+                    },
+                    {
+                        label: 'Almacén 2',
+                        data: [
+                            stockFinalDiciembre.find(d => d.Producto === 'Producto A' && d.Almacén === 'Almacén 2')?.['Stock Final'] || 0,
+                            stockFinalDiciembre.find(d => d.Producto === 'Producto B' && d.Almacén === 'Almacén 2')?.['Stock Final'] || 0,
+                            stockFinalDiciembre.find(d => d.Producto === 'Producto C' && d.Almacén === 'Almacén 2')?.['Stock Final'] || 0
+                        ],
+                        backgroundColor: colores.almacen2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Stock Final'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y;
+                                if (context.datasetIndex === 0 && context.dataIndex === 2 && value === 0) {
+                                    return label + ': No maneja este producto';
+                                }
+                                return label + ': ' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 5.2 Evolución de stock - Almacén 1
+        const stockAlmacen1 = inventario.filter(d => d.Almacén === 'Almacén 1');
+        const stockA1 = stockAlmacen1.filter(d => d.Producto === 'Producto A');
+        const stockB1 = stockAlmacen1.filter(d => d.Producto === 'Producto B');
+        const stockC1 = stockAlmacen1.filter(d => d.Producto === 'Producto C');
+        
+        crearGrafico('chart-inventario-almacen1', {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Producto A',
+                        data: stockA1.map(d => d['Stock Final']),
+                        borderColor: colores.productoA,
+                        backgroundColor: colores.productoA + '20',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Producto B',
+                        data: stockB1.map(d => d['Stock Final']),
+                        borderColor: colores.productoB,
+                        backgroundColor: colores.productoB + '20',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Producto C',
+                        data: meses.map(() => 0), // Sin datos de inventario
+                        borderColor: colores.productoC,
+                        backgroundColor: colores.productoC + '20',
+                        borderDash: [5, 5], // Línea punteada para indicar sin datos
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Stock'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            generateLabels: function(chart) {
+                                const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                const labels = original.call(this, chart);
+                                labels[2].text = 'Producto C (Sin datos)';
+                                return labels;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 5.3 Evolución de stock - Almacén 2
+        const stockAlmacen2 = inventario.filter(d => d.Almacén === 'Almacén 2');
+        const stockA2 = stockAlmacen2.filter(d => d.Producto === 'Producto A');
+        const stockB2 = stockAlmacen2.filter(d => d.Producto === 'Producto B');
+        const stockC2 = stockAlmacen2.filter(d => d.Producto === 'Producto C');
+        
+        crearGrafico('chart-inventario-almacen2', {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Producto A',
+                        data: stockA2.map(d => d['Stock Final']),
+                        borderColor: colores.productoA,
+                        backgroundColor: colores.productoA + '20',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Producto B',
+                        data: stockB2.map(d => d['Stock Final']),
+                        borderColor: colores.productoB,
+                        backgroundColor: colores.productoB + '20',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Producto C',
+                        data: stockC2.map(d => d['Stock Final']),
+                        borderColor: colores.productoC,
+                        backgroundColor: colores.productoC + '20',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Stock'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 5.4 Rotación de inventario
+        const rotacionA = inventario.filter(d => d.Producto === 'Producto A')
+            .reduce((sum, d) => sum + d.Salidas, 0) / 12;
+        const rotacionB = inventario.filter(d => d.Producto === 'Producto B')
+            .reduce((sum, d) => sum + d.Salidas, 0) / 12;
+        const rotacionC = inventario.filter(d => d.Producto === 'Producto C')
+            .reduce((sum, d) => sum + d.Salidas, 0) / 12 || 0;
+        
+        crearGrafico('chart-inventario-rotacion', {
+            type: 'bar',
+            data: {
+                labels: ['Producto A', 'Producto B', 'Producto C'],
+                datasets: [{
+                    label: 'Rotación Promedio Mensual',
+                    data: [rotacionA, rotacionB, rotacionC],
+                    backgroundColor: [colores.productoA, colores.productoB, colores.productoC]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                if (context.dataIndex === 2 && value === 0) {
+                                    return 'Sin datos de inventario';
+                                }
+                                return 'Rotación: ' + value.toFixed(0);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // SECCIÓN 6: KPIs
+        
+        // 6.1 Cumplimiento de metas
+        const kpisA = kpis.filter(d => d.Producto === 'Producto A');
+        const kpisB = kpis.filter(d => d.Producto === 'Producto B');
+        const kpisC = kpis.filter(d => d.Producto === 'Producto C');
+        
+        crearGrafico('chart-kpi-cumplimiento', {
+            type: 'bar',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Producto A',
+                        data: kpisA.map(d => (d['Ventas Reales (USD)'] / d['Meta de Ventas (USD)'] * 100).toFixed(1)),
+                        backgroundColor: colores.productoA
+                    },
+                    {
+                        label: 'Producto B',
+                        data: kpisB.map(d => (d['Ventas Reales (USD)'] / d['Meta de Ventas (USD)'] * 100).toFixed(1)),
+                        backgroundColor: colores.productoB
+                    },
+                    {
+                        label: 'Producto C',
+                        data: kpisC.map(d => (d['Ventas Reales (USD)'] / d['Meta de Ventas (USD)'] * 100).toFixed(1)),
+                        backgroundColor: colores.productoC
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Cumplimiento (%)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 6.2 Desviación promedio
+        const desviacionPromedio = {
+            A: kpisA.reduce((sum, d) => sum + parseFloat(d['Desviación (%)']), 0) / kpisA.length,
+            B: kpisB.reduce((sum, d) => sum + parseFloat(d['Desviación (%)']), 0) / kpisB.length,
+            C: kpisC.reduce((sum, d) => sum + parseFloat(d['Desviación (%)']), 0) / kpisC.length
+        };
+        
+        crearGrafico('chart-kpi-desviacion', {
+            type: 'bar',
+            data: {
+                labels: ['Producto A', 'Producto B', 'Producto C'],
+                datasets: [{
+                    label: 'Desviación Promedio %',
+                    data: [desviacionPromedio.A, desviacionPromedio.B, desviacionPromedio.C],
+                    backgroundColor: [
+                        desviacionPromedio.A >= 0 ? '#2ecc71' : '#e74c3c',
+                        desviacionPromedio.B >= 0 ? '#2ecc71' : '#e74c3c',
+                        desviacionPromedio.C >= 0 ? '#2ecc71' : '#e74c3c'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+        
+        // 6.3, 6.4, 6.5 Metas vs Ventas Reales por producto
+        crearGrafico('chart-kpi-productoA', {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Meta',
+                        data: kpisA.map(d => d['Meta de Ventas (USD)']),
+                        borderColor: '#95a5a6',
+                        borderDash: [5, 5],
+                        fill: false
+                    },
+                    {
+                        label: 'Real',
+                        data: kpisA.map(d => d['Ventas Reales (USD)']),
+                        borderColor: colores.productoA,
+                        backgroundColor: colores.productoA + '20',
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Ventas (USD)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        crearGrafico('chart-kpi-productoB', {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Meta',
+                        data: kpisB.map(d => d['Meta de Ventas (USD)']),
+                        borderColor: '#95a5a6',
+                        borderDash: [5, 5],
+                        fill: false
+                    },
+                    {
+                        label: 'Real',
+                        data: kpisB.map(d => d['Ventas Reales (USD)']),
+                        borderColor: colores.productoB,
+                        backgroundColor: colores.productoB + '20',
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Ventas (USD)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        crearGrafico('chart-kpi-productoC', {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [
+                    {
+                        label: 'Meta',
+                        data: kpisC.map(d => d['Meta de Ventas (USD)']),
+                        borderColor: '#95a5a6',
+                        borderDash: [5, 5],
+                        fill: false
+                    },
+                    {
+                        label: 'Real',
+                        data: kpisC.map(d => d['Ventas Reales (USD)']),
+                        borderColor: colores.productoC,
+                        backgroundColor: colores.productoC + '20',
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Ventas (USD)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 6.6 Tendencia de cumplimiento
+        const cumplimientoTotal = meses.map((mes, i) => {
+            const metaTotal = kpisA[i]['Meta de Ventas (USD)'] + 
+                            kpisB[i]['Meta de Ventas (USD)'] + 
+                            kpisC[i]['Meta de Ventas (USD)'];
+            const realTotal = kpisA[i]['Ventas Reales (USD)'] + 
+                            kpisB[i]['Ventas Reales (USD)'] + 
+                            kpisC[i]['Ventas Reales (USD)'];
+            return (realTotal / metaTotal * 100).toFixed(1);
+        });
+        
+        crearGrafico('chart-kpi-tendencia', {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [{
+                    label: 'Cumplimiento Total %',
+                    data: cumplimientoTotal,
+                    borderColor: '#3498db',
+                    backgroundColor: '#3498db20',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        min: 90,
+                        max: 105,
+                        title: {
+                            display: true,
+                            text: 'Cumplimiento (%)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Smooth scroll para navegación
+        document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const targetId = this.getAttribute('href');
+                const target = document.querySelector(targetId);
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // Animación de entrada para las secciones
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animationDelay = '0.1s';
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+        
+        document.querySelectorAll('.section').forEach(section => {
+            observer.observe(section);
+        });
+        
+        // Efecto de hover en las métricas
+        document.querySelectorAll('.metric-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.05)';
+            });
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>
